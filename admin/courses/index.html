@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Zenova Admin — Courses</title>
+
+  <link rel="stylesheet" href="./courses.css">
+</head>
+
+<body>
+
+  <div id="loadingScreen"></div>
+
+  <div class="app">
+
+    <header class="topbar">
+
+      <div class="topbar-left">
+
+        <button
+          id="backButton"
+          class="back-button"
+          type="button"
+        >
+          ←
+        </button>
+
+        <div>
+          <h1>Courses</h1>
+          <p>Manage courses and learning programs</p>
+        </div>
+
+      </div>
+
+      <button
+        id="addCourseButton"
+        class="primary-button"
+        type="button"
+      >
+        + Create Course
+      </button>
+
+    </header>
+
+
+    <main class="main">
+
+      <!-- COURSE LIST -->
+
+      <section id="courseListView">
+
+        <div class="page-heading">
+
+          <div>
+            <h2>All Courses</h2>
+
+            <p>
+              Create and manage courses for Zenova students.
+            </p>
+          </div>
+
+          <div
+            id="courseCount"
+            class="course-count"
+          >
+            0 Courses
+          </div>
+
+        </div>
+
+
+        <div
+          id="courseList"
+          class="course-list"
+        ></div>
+
+
+        <div
+          id="emptyState"
+          class="empty-state"
+          hidden
+        >
+
+          <div class="empty-icon">
+            +
+          </div>
+
+          <h3>No courses yet</h3>
+
+          <p>
+            Create your first course to start building
+            subjects, chapters and learning content.
+          </p>
+
+          <button
+            id="emptyCreateButton"
+            class="primary-button"
+            type="button"
+          >
+            Create Course
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- COURSE FORM -->
+
+      <section
+        id="courseFormView"
+        class="form-view"
+        hidden
+      >
+
+        <div class="form-heading">
+
+          <div>
+            <h2 id="formTitle">
+              Create Course
+            </h2>
+
+            <p>
+              Add the basic information for this course.
+            </p>
+          </div>
+
+          <button
+            id="closeFormButton"
+            class="close-button"
+            type="button"
+          >
+            ×
+          </button>
+
+        </div>
+
+
+        <form id="courseForm">
+
+
+          <!-- BASIC INFORMATION -->
+
+          <div class="form-card">
+
+            <div class="card-title">
+              Course Information
+            </div>
+
+            <div class="card-description">
+              Basic details students will see.
+            </div>
+
+
+            <div class="form-grid">
+
+              <div class="field full">
+
+                <label>
+                  Course Name *
+                </label>
+
+                <input
+                  id="courseName"
+                  type="text"
+                  placeholder="Example: SSLC 2027"
+                  required
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label>
+                  Course Code
+                </label>
+
+                <input
+                  id="courseCode"
+                  type="text"
+                  placeholder="Example: SSLC27"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label>
+                  Class *
+                </label>
+
+                <select
+                  id="courseClass"
+                  required
+                >
+
+                  <option value="">
+                    Select class
+                  </option>
+
+                  <option value="8">
+                    Class 8
+                  </option>
+
+                  <option value="9">
+                    Class 9
+                  </option>
+
+                  <option value="10">
+                    Class 10
+                  </option>
+
+                  <option value="1_PUC">
+                    1st PUC
+                  </option>
+
+                  <option value="2_PUC">
+                    2nd PUC
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="field">
+
+                <label>
+                  Board
+                </label>
+
+                <input
+                  id="courseBoard"
+                  type="text"
+                  placeholder="Example: Karnataka SSLC"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label>
+                  Priority
+                </label>
+
+                <input
+                  id="coursePriority"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="0"
+                >
+
+                <small>
+                  Lower number appears first.
+                </small>
+
+              </div>
+
+
+              <div class="field full">
+
+                <label>
+                  Description
+                </label>
+
+                <textarea
+                  id="courseDescription"
+                  rows="5"
+                  placeholder="Describe the course..."
+                ></textarea>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- THUMBNAIL -->
+
+          <div class="form-card">
+
+            <div class="card-title">
+              Course Thumbnail
+            </div>
+
+            <div class="card-description">
+              Upload an image or provide an image URL.
+              One is enough.
+            </div>
+
+
+            <div class="source-tabs">
+
+              <button
+                type="button"
+                class="source-tab active"
+                data-source="upload"
+              >
+                Upload Image
+              </button>
+
+              <button
+                type="button"
+                class="source-tab"
+                data-source="url"
+              >
+                Image URL
+              </button>
+
+            </div>
+
+
+            <!-- UPLOAD -->
+
+            <div
+              id="thumbnailUploadPanel"
+              class="source-panel"
+            >
+
+              <label
+                class="upload-box"
+                for="thumbnailFile"
+              >
+
+                <div class="upload-icon">
+                  ↑
+                </div>
+
+                <strong>
+                  Choose thumbnail
+                </strong>
+
+                <span>
+                  JPG, PNG or WEBP
+                </span>
+
+                <input
+                  id="thumbnailFile"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hidden
+                >
+
+              </label>
+
+            </div>
+
+
+            <!-- URL -->
+
+            <div
+              id="thumbnailUrlPanel"
+              class="source-panel"
+              hidden
+            >
+
+              <label>
+                Image URL
+              </label>
+
+              <input
+                id="thumbnailUrl"
+                type="url"
+                placeholder="https://example.com/course.jpg"
+              >
+
+            </div>
+
+
+            <!-- PREVIEW -->
+
+            <div
+              id="thumbnailPreviewContainer"
+              class="thumbnail-preview-container"
+              hidden
+            >
+
+              <span>
+                Preview
+              </span>
+
+              <div class="thumbnail-preview">
+
+                <img
+                  id="thumbnailPreview"
+                  src=""
+                  alt="Course thumbnail preview"
+                >
+
+              </div>
+
+              <small id="thumbnailDimensions"></small>
+
+            </div>
+
+          </div>
+
+
+          <!-- LANGUAGES -->
+
+          <div class="form-card">
+
+            <div class="card-title">
+              Languages
+            </div>
+
+            <div class="card-description">
+              Add the first, second and third language
+              available for this course.
+            </div>
+
+
+            <div class="language-grid">
+
+              <div class="field">
+
+                <label>
+                  First Language
+                </label>
+
+                <input
+                  id="firstLanguage"
+                  type="text"
+                  placeholder="Example: Kannada"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label>
+                  Second Language
+                </label>
+
+                <input
+                  id="secondLanguage"
+                  type="text"
+                  placeholder="Example: English"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label>
+                  Third Language
+                </label>
+
+                <input
+                  id="thirdLanguage"
+                  type="text"
+                  placeholder="Example: Hindi"
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SUBJECTS -->
+
+          <div class="form-card">
+
+            <div class="card-title">
+              Subjects
+            </div>
+
+            <div class="card-description">
+              Add the subjects that belong to this course.
+              Chapters can be added after the course is created.
+            </div>
+
+
+            <div
+              id="subjectList"
+              class="subject-list"
+            ></div>
+
+
+            <div class="add-subject-row">
+
+              <input
+                id="newSubject"
+                type="text"
+                placeholder="Enter subject name"
+              >
+
+              <button
+                id="addSubjectButton"
+                type="button"
+                class="secondary-button"
+              >
+                + Add Subject
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- STATUS -->
+
+          <div class="form-card">
+
+            <div class="card-title">
+              Course Status
+            </div>
+
+            <label class="switch-row">
+
+              <input
+                id="courseActive"
+                type="checkbox"
+                checked
+              >
+
+              <span class="switch"></span>
+
+              <span>
+                Active course
+              </span>
+
+            </label>
+
+          </div>
+
+
+          <!-- MESSAGE -->
+
+          <div
+            id="formMessage"
+            class="form-message"
+            hidden
+          ></div>
+
+
+          <!-- ACTIONS -->
+
+          <div class="form-actions">
+
+            <button
+              id="cancelButton"
+              type="button"
+              class="secondary-button"
+            >
+              Cancel
+            </button>
+
+            <button
+              id="saveCourseButton"
+              type="submit"
+              class="primary-button"
+            >
+              Create Course
+            </button>
+
+          </div>
+
+
+        </form>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+  <script
+    type="module"
+    src="./courses.js"
+  ></script>
+
+</body>
+</html>
