@@ -11,9 +11,9 @@ import {
 import {
   collection,
   addDoc,
-  doc,
   updateDoc,
   deleteDoc,
+  doc,
   onSnapshot,
   serverTimestamp,
   query,
@@ -33,41 +33,31 @@ import {
   hideLoading
 } from "../../core/loading.js";
 
-import {
-  getCurrentAdmin
-} from "../../core/admin.js";
-
 
 /* =====================================================
-   CONFIGURATION
+   CONFIG
 ===================================================== */
 
 const BANNERS_COLLECTION = "zenovaV2Banners";
 
-const STORAGE_FOLDER = "zenovaV2/banners";
-
-const MIN_WIDTH = 1200;
-const MIN_HEIGHT = 450;
-
-const RECOMMENDED_WIDTH = 1920;
-const RECOMMENDED_HEIGHT = 720;
+const BANNER_STORAGE_PATH = "zenovaV2Banners";
 
 
 /* =====================================================
    STATE
 ===================================================== */
 
+let currentUser = null;
+
 let banners = [];
 
-let currentEditId = null;
+let editingBannerId = null;
 
-let currentDeleteId = null;
+let editingBannerData = null;
 
-let selectedImageFile = null;
+let selectedSource = "upload";
 
-let existingImageUrl = "";
-
-let existingStoragePath = "";
+let selectedFile = null;
 
 let unsubscribeBanners = null;
 
@@ -79,38 +69,49 @@ let unsubscribeBanners = null;
 const bannerList =
   document.getElementById("bannerList");
 
-const bannerLoading =
-  document.getElementById("bannerLoading");
+const emptyState =
+  document.getElementById("emptyState");
 
-const bannerEmpty =
-  document.getElementById("bannerEmpty");
+const bannerListSection =
+  document.getElementById("bannerListSection");
 
-const bannerModal =
-  document.getElementById("bannerModal");
-
-const deleteModal =
-  document.getElementById("deleteModal");
+const bannerFormSection =
+  document.getElementById("bannerFormSection");
 
 const bannerForm =
   document.getElementById("bannerForm");
 
-const bannerImage =
-  document.getElementById("bannerImage");
+const formTitle =
+  document.getElementById("formTitle");
 
-const uploadArea =
-  document.getElementById("uploadArea");
+const googleDummy = null;
 
-const uploadPlaceholder =
-  document.getElementById("uploadPlaceholder");
+const bannerFile =
+  document.getElementById("bannerFile");
 
-const imagePreviewWrapper =
-  document.getElementById("imagePreviewWrapper");
+const bannerUrl =
+  document.getElementById("bannerUrl");
 
-const imagePreview =
-  document.getElementById("imagePreview");
+const uploadSource =
+  document.getElementById("uploadSource");
 
-const imageInfo =
-  document.getElementById("imageInfo");
+const urlSource =
+  document.getElementById("urlSource");
+
+const uploadTab =
+  document.getElementById("uploadTab");
+
+const urlTab =
+  document.getElementById("urlTab");
+
+const previewContainer =
+  document.getElementById("previewContainer");
+
+const bannerPreview =
+  document.getElementById("bannerPreview");
+
+const imageDimensions =
+  document.getElementById("imageDimensions");
 
 const bannerTitle =
   document.getElementById("bannerTitle");
@@ -130,74 +131,47 @@ const priority =
 const active =
   document.getElementById("active");
 
-const formError =
-  document.getElementById("formError");
-
-const modalTitle =
-  document.getElementById("modalTitle");
+const formMessage =
+  document.getElementById("formMessage");
 
 const saveButton =
   document.getElementById("saveButton");
 
 
 /* =====================================================
-   INITIALIZE
+   LOADING
 ===================================================== */
 
 createLoadingScreen();
 
-initialize();
 
+/* =====================================================
+   AUTH
+===================================================== */
 
-async function initialize() {
+onAuthStateChanged(
+  auth,
+  user => {
 
-  showLoading();
+    currentUser = user || null;
 
-  onAuthStateChanged(
-    auth,
-    async (user) => {
+    /*
+     * Login is intentionally not enforced yet.
+     *
+     * When Admin authentication is introduced,
+     * this module can call the centralized admin
+     * authorization layer here.
+     */
 
-      if (!user) {
+    hideLoading();
 
-        /*
-         * There is intentionally no Admin login screen
-         * at this stage.
-         *
-         * Authentication/role protection can be enabled
-         * centrally later through core/admin.js.
-         */
-
-        console.warn(
-          "No authenticated admin session."
-        );
-      }
-
-      try {
-
-        startBannerListener();
-
-      } catch (error) {
-
-        console.error(
-          "Banner initialization failed:",
-          error
-        );
-
-        showErrorState(
-          "Unable to load banners."
-        );
-
-      } finally {
-
-        hideLoading();
-      }
-    }
-  );
-}
+    startBannerListener();
+  }
+);
 
 
 /* =====================================================
-   FIRESTORE LISTENER
+   FIRESTORE
 ===================================================== */
 
 function startBannerListener() {
@@ -207,10 +181,7 @@ function startBannerListener() {
   }
 
   const bannersRef =
-    collection(
-      db,
-      BANNERS_COLLECTION
-    );
+    collection(db, BANNERS_COLLECTION);
 
   const bannersQuery =
     query(
@@ -222,189 +193,198 @@ function startBannerListener() {
     onSnapshot(
       bannersQuery,
 
-      (snapshot) => {
+      snapshot => {
 
         banners =
-          snapshot.docs.map(
-            (item) => ({
-              id: item.id,
-              ...item.data()
-            })
-          );
-
-        /*
-         * If multiple banners have the same priority,
-         * newest updated banner comes later.
-         */
-        banners.sort(
-          (a, b) => {
-
-            const priorityA =
-              Number.isFinite(Number(a.priority))
-                ? Number(a.priority)
-                : 999999;
-
-            const priorityB =
-              Number.isFinite(Number(b.priority))
-                ? Number(b.priority)
-                : 999999;
-
-            if (priorityA !== priorityB) {
-              return priorityA - priorityB;
-            }
-
-            const timeA =
-              getTimestampValue(
-                a.updatedAt || a.createdAt
-              );
-
-            const timeB =
-              getTimestampValue(
-                b.updatedAt || b.createdAt
-              );
-
-            return timeB - timeA;
-          }
-        );
+          snapshot.docs.map(item => ({
+            id: item.id,
+            ...item.data()
+          }));
 
         renderBanners();
       },
 
-      (error) => {
+      error => {
 
         console.error(
-          "Firestore banner listener error:",
+          "Banner listener error:",
           error
         );
 
-        showErrorState(
-          "Unable to load banners. Check your Firebase permissions."
-        );
+        showEmptyError();
       }
     );
 }
 
 
 /* =====================================================
-   RENDER
+   RENDER BANNERS
 ===================================================== */
 
 function renderBanners() {
-
-  bannerLoading.classList.add("hidden");
 
   bannerList.innerHTML = "";
 
   if (!banners.length) {
 
-    bannerList.classList.add("hidden");
-
-    bannerEmpty.classList.remove("hidden");
+    emptyState.hidden = false;
 
     return;
   }
 
-  bannerEmpty.classList.add("hidden");
-
-  bannerList.classList.remove("hidden");
+  emptyState.hidden = true;
 
 
-  banners.forEach(
-    (banner) => {
+  banners.forEach(banner => {
 
-      const card =
-        document.createElement("article");
+    const card =
+      document.createElement("article");
 
-      card.className = "banner-card";
-
-      const title =
-        escapeHtml(
-          banner.title || ""
-        );
-
-      const description =
-        escapeHtml(
-          banner.description || ""
-        );
-
-      const button =
-        escapeHtml(
-          banner.buttonText || ""
-        );
-
-      const isActive =
-        banner.active !== false;
+    card.className = "banner-card";
 
 
-      card.innerHTML = `
-        <div class="banner-image-container">
+    const imageUrl =
+      banner.imageUrl || "";
 
-          <img
-            class="banner-image"
-            src="${escapeAttribute(
-              banner.imageUrl || ""
-            )}"
-            alt="${title || "Zenova banner"}"
-            loading="lazy"
-          >
 
-          <div
-            class="banner-status ${
-              isActive
-                ? "active"
-                : "inactive"
-            }"
-          >
-            ${isActive ? "● Active" : "○ Inactive"}
-          </div>
+    card.innerHTML = `
 
-        </div>
+      <div class="banner-image-wrap">
 
-        <div class="banner-details">
+        ${
+          imageUrl
+            ? `
+              <img
+                src="${escapeAttribute(imageUrl)}"
+                alt="${escapeAttribute(
+                  banner.title || "Zenova banner"
+                )}"
+                loading="lazy"
+              >
+            `
+            : `
+              <div
+                style="
+                  width:100%;
+                  height:100%;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  color:#999;
+                  font-size:13px;
+                "
+              >
+                No image
+              </div>
+            `
+        }
 
-          ${
-            title
-              ? `
-                <div class="banner-title">
-                  ${title}
-                </div>
-              `
-              : `
-                <div class="banner-no-title">
-                  Image-only banner
-                </div>
-              `
-          }
+      </div>
 
-          ${
-            description
-              ? `
-                <div class="banner-description">
-                  ${description}
-                </div>
-              `
-              : ""
-          }
 
-          <div class="banner-meta">
+      <div class="banner-card-body">
 
-            <span class="meta-pill">
-              Priority:
-              ${
-                Number.isFinite(
-                  Number(banner.priority)
-                )
-                  ? Number(banner.priority)
-                  : "—"
-              }
-            </span>
+        <div class="banner-card-top">
+
+          <div class="banner-info">
 
             ${
-              button
+              banner.title
                 ? `
-                  <span class="meta-pill">
-                    Button: ${button}
-                  </span>
+                  <div class="banner-title">
+                    ${escapeHtml(banner.title)}
+                  </div>
+                `
+                : `
+                  <div class="banner-title empty">
+                    Image-only banner
+                  </div>
+                `
+            }
+
+
+            ${
+              banner.description
+                ? `
+                  <div class="banner-description">
+                    ${escapeHtml(
+                      banner.description
+                    )}
+                  </div>
+                `
+                : ""
+            }
+
+
+            <div class="banner-meta">
+
+              <span class="meta-pill">
+                Priority ${Number(
+                  banner.priority ?? 0
+                )}
+              </span>
+
+              <span class="
+                meta-pill
+                ${
+                  banner.active === false
+                    ? "status-inactive"
+                    : "status-active"
+                }
+              ">
+                ${
+                  banner.active === false
+                    ? "Inactive"
+                    : "Active"
+                }
+              </span>
+
+              ${
+                banner.source === "URL"
+                  ? `
+                    <span class="meta-pill">
+                      URL
+                    </span>
+                  `
+                  : `
+                    <span class="meta-pill">
+                      Uploaded
+                    </span>
+                  `
+              }
+
+            </div>
+
+
+            ${
+              banner.buttonText
+                ? `
+                  <div class="banner-description">
+                    Button:
+                    ${escapeHtml(
+                      banner.buttonText
+                    )}
+                  </div>
+                `
+                : ""
+            }
+
+
+            ${
+              banner.buttonLink
+                ? `
+                  <a
+                    class="banner-link"
+                    href="${escapeAttribute(
+                      banner.buttonLink
+                    )}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    ${escapeHtml(
+                      banner.buttonLink
+                    )}
+                  </a>
                 `
                 : ""
             }
@@ -416,307 +396,315 @@ function renderBanners() {
 
             <button
               type="button"
-              class="small-button"
-              data-action="toggle"
-              data-id="${banner.id}"
-            >
-              ${
-                isActive
-                  ? "Hide"
-                  : "Show"
-              }
-            </button>
-
-            <button
-              type="button"
-              class="small-button"
+              class="icon-button"
               data-action="edit"
               data-id="${banner.id}"
+              title="Edit"
             >
-              Edit
+              ✎
             </button>
 
             <button
               type="button"
-              class="small-button danger"
+              class="icon-button delete"
               data-action="delete"
               data-id="${banner.id}"
+              title="Delete"
             >
-              Delete
+              ×
             </button>
 
           </div>
 
         </div>
-      `;
 
-      bannerList.appendChild(card);
+      </div>
+
+    `;
+
+
+    bannerList.appendChild(card);
+  });
+}
+
+
+/* =====================================================
+   OPEN FORM
+===================================================== */
+
+function openForm(banner = null) {
+
+  bannerListSection.hidden = true;
+
+  bannerFormSection.hidden = false;
+
+  editingBannerId =
+    banner ? banner.id : null;
+
+  editingBannerData =
+    banner ? { ...banner } : null;
+
+  clearMessage();
+
+  selectedFile = null;
+
+  if (banner) {
+
+    formTitle.textContent =
+      "Edit Banner";
+
+    bannerTitle.value =
+      banner.title || "";
+
+    bannerDescription.value =
+      banner.description || "";
+
+    buttonText.value =
+      banner.buttonText || "";
+
+    buttonLink.value =
+      banner.buttonLink || "";
+
+    priority.value =
+      Number(banner.priority ?? 0);
+
+    active.checked =
+      banner.active !== false;
+
+
+    if (
+      banner.source === "URL" &&
+      banner.imageUrl
+    ) {
+
+      setSource("url");
+
+      bannerUrl.value =
+        banner.imageUrl;
+
+      showPreview(
+        banner.imageUrl
+      );
+
+    } else {
+
+      setSource("upload");
+
+      if (banner.imageUrl) {
+        showPreview(
+          banner.imageUrl
+        );
+      }
     }
-  );
-}
-
-
-/* =====================================================
-   OPEN ADD MODAL
-===================================================== */
-
-function openAddModal() {
-
-  currentEditId = null;
-
-  selectedImageFile = null;
-
-  existingImageUrl = "";
-
-  existingStoragePath = "";
-
-  modalTitle.textContent =
-    "Add Banner";
-
-  saveButton.textContent =
-    "Save Banner";
-
-  bannerForm.reset();
-
-  active.checked = true;
-
-  priority.value = "";
-
-  resetImagePreview();
-
-  clearFormError();
-
-  bannerModal.classList.remove("hidden");
-}
-
-
-/* =====================================================
-   OPEN EDIT MODAL
-===================================================== */
-
-function openEditModal(id) {
-
-  const banner =
-    banners.find(
-      (item) => item.id === id
-    );
-
-  if (!banner) return;
-
-  currentEditId = id;
-
-  selectedImageFile = null;
-
-  existingImageUrl =
-    banner.imageUrl || "";
-
-  existingStoragePath =
-    banner.storagePath || "";
-
-  modalTitle.textContent =
-    "Edit Banner";
-
-  saveButton.textContent =
-    "Update Banner";
-
-  bannerTitle.value =
-    banner.title || "";
-
-  bannerDescription.value =
-    banner.description || "";
-
-  buttonText.value =
-    banner.buttonText || "";
-
-  buttonLink.value =
-    banner.buttonLink || "";
-
-  priority.value =
-    banner.priority !== undefined
-      ? banner.priority
-      : "";
-
-  active.checked =
-    banner.active !== false;
-
-  clearFormError();
-
-  if (existingImageUrl) {
-
-    imagePreview.src =
-      existingImageUrl;
-
-    uploadPlaceholder.classList.add(
-      "hidden"
-    );
-
-    imagePreviewWrapper.classList.remove(
-      "hidden"
-    );
 
   } else {
 
-    resetImagePreview();
+    formTitle.textContent =
+      "Add Banner";
+
+    resetForm();
+
   }
 
-  imageInfo.textContent =
-    "Current banner image";
-
-  bannerModal.classList.remove(
-    "hidden"
-  );
 }
 
 
 /* =====================================================
-   IMAGE SELECT
+   CLOSE FORM
 ===================================================== */
 
-uploadArea.addEventListener(
-  "click",
-  (event) => {
+function closeForm() {
 
-    if (
-      event.target.closest(
-        "#changeImageButton"
-      )
-    ) {
-      return;
-    }
+  bannerFormSection.hidden = true;
 
-    bannerImage.click();
+  bannerListSection.hidden = false;
+
+  editingBannerId = null;
+
+  editingBannerData = null;
+
+  selectedFile = null;
+
+  resetForm();
+
+}
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+function resetForm() {
+
+  bannerForm.reset();
+
+  priority.value = "0";
+
+  active.checked = true;
+
+  selectedFile = null;
+
+  setSource("upload");
+
+  hidePreview();
+
+  clearMessage();
+}
+
+
+/* =====================================================
+   SOURCE SWITCH
+===================================================== */
+
+function setSource(source) {
+
+  selectedSource = source;
+
+  if (source === "upload") {
+
+    uploadTab.classList.add("active");
+    urlTab.classList.remove("active");
+
+    uploadSource.hidden = false;
+    urlSource.hidden = true;
+
+  } else {
+
+    uploadTab.classList.remove("active");
+    urlTab.classList.add("active");
+
+    uploadSource.hidden = true;
+    urlSource.hidden = false;
   }
-);
+}
 
 
-document
-  .getElementById("changeImageButton")
-  .addEventListener(
-    "click",
-    (event) => {
+/* =====================================================
+   FILE SELECT
+===================================================== */
 
-      event.stopPropagation();
-
-      bannerImage.click();
-    }
-  );
-
-
-bannerImage.addEventListener(
+bannerFile.addEventListener(
   "change",
-  async () => {
+  event => {
 
     const file =
-      bannerImage.files?.[0];
+      event.target.files?.[0];
 
     if (!file) return;
 
-    clearFormError();
 
-    if (!file.type.startsWith("image/")) {
+    const validTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ];
 
-      showFormError(
-        "Please select a valid image."
+    if (!validTypes.includes(file.type)) {
+
+      showMessage(
+        "Please select a JPG, PNG or WEBP image.",
+        "error"
       );
 
-      bannerImage.value = "";
+      bannerFile.value = "";
 
       return;
     }
 
 
-    const maxSize =
-      10 * 1024 * 1024;
+    selectedFile = file;
 
-    if (file.size > maxSize) {
+    const localUrl =
+      URL.createObjectURL(file);
 
-      showFormError(
-        "Banner image must be smaller than 10 MB."
-      );
+    showPreview(localUrl);
 
-      bannerImage.value = "";
-
-      return;
-    }
-
-
-    try {
-
-      const dimensions =
-        await getImageDimensions(file);
-
-      const width =
-        dimensions.width;
-
-      const height =
-        dimensions.height;
-
-
-      if (
-        width < MIN_WIDTH ||
-        height < MIN_HEIGHT
-      ) {
-
-        showFormError(
-          `Banner image is too small. Minimum recommended dimensions are ${MIN_WIDTH} × ${MIN_HEIGHT}px.`
-        );
-
-        bannerImage.value = "";
-
-        return;
-      }
-
-
-      selectedImageFile = file;
-
-      imagePreview.src =
-        URL.createObjectURL(file);
-
-      uploadPlaceholder.classList.add(
-        "hidden"
-      );
-
-      imagePreviewWrapper.classList.remove(
-        "hidden"
-      );
-
-
-      const ratio =
-        width / height;
-
-      const recommendedRatio =
-        RECOMMENDED_WIDTH /
-        RECOMMENDED_HEIGHT;
-
-      const ratioDifference =
-        Math.abs(
-          ratio - recommendedRatio
-        );
-
-
-      imageInfo.textContent =
-        `${width} × ${height}px • ${formatBytes(file.size)}`;
-
-
-      if (ratioDifference > 0.08) {
-
-        imageInfo.textContent +=
-          " • Recommended aspect ratio is 8:3.";
-      }
-
-    } catch (error) {
-
-      console.error(
-        "Image validation error:",
-        error
-      );
-
-      showFormError(
-        "Unable to read this image."
-      );
-    }
+    checkImageDimensions(localUrl);
   }
 );
+
+
+/* =====================================================
+   URL PREVIEW
+===================================================== */
+
+bannerUrl.addEventListener(
+  "input",
+  () => {
+
+    const url =
+      bannerUrl.value.trim();
+
+    if (!url) {
+
+      hidePreview();
+
+      return;
+    }
+
+    showPreview(url);
+
+    checkImageDimensions(url);
+  }
+);
+
+
+/* =====================================================
+   IMAGE PREVIEW
+===================================================== */
+
+function showPreview(url) {
+
+  bannerPreview.src = url;
+
+  previewContainer.hidden = false;
+
+  bannerPreview.onload = () => {
+
+    imageDimensions.textContent =
+      `${bannerPreview.naturalWidth} × ${bannerPreview.naturalHeight}px`;
+
+  };
+
+  bannerPreview.onerror = () => {
+
+    imageDimensions.textContent =
+      "Unable to load this image.";
+
+  };
+}
+
+
+function hidePreview() {
+
+  previewContainer.hidden = true;
+
+  bannerPreview.src = "";
+
+  imageDimensions.textContent = "";
+}
+
+
+function checkImageDimensions(url) {
+
+  const image =
+    new Image();
+
+  image.onload = () => {
+
+    imageDimensions.textContent =
+      `${image.naturalWidth} × ${image.naturalHeight}px`;
+
+  };
+
+  image.onerror = () => {
+
+    imageDimensions.textContent =
+      "Unable to load image.";
+  };
+
+  image.src = url;
+}
 
 
 /* =====================================================
@@ -725,79 +713,51 @@ bannerImage.addEventListener(
 
 bannerForm.addEventListener(
   "submit",
-  async (event) => {
+  async event => {
 
     event.preventDefault();
 
-    clearFormError();
+    clearMessage();
+
+
+    const title =
+      bannerTitle.value.trim();
+
+    const description =
+      bannerDescription.value.trim();
+
+    const text =
+      buttonText.value.trim();
+
+    const link =
+      buttonLink.value.trim();
+
+    const priorityValue =
+      Number(priority.value) || 0;
+
+    const isActive =
+      active.checked;
 
 
     /*
      * IMAGE IS THE ONLY REQUIRED FIELD.
      *
-     * When editing, an existing image is also valid.
+     * For a new banner:
+     * either upload a file OR provide URL.
+     *
+     * For an existing banner:
+     * the existing image can remain.
      */
-    if (
-      !selectedImageFile &&
-      !existingImageUrl
-    ) {
-
-      showFormError(
-        "Banner image is required."
-      );
-
-      return;
-    }
-
-
-    const user =
-      getCurrentAdmin() ||
-      auth.currentUser;
-
-
-    if (!user) {
-
-      showFormError(
-        "No authenticated Firebase user is available."
-      );
-
-      return;
-    }
-
-
-    const data = {
-
-      title:
-        bannerTitle.value.trim(),
-
-      description:
-        bannerDescription.value.trim(),
-
-      buttonText:
-        buttonText.value.trim(),
-
-      buttonLink:
-        buttonLink.value.trim(),
-
-      priority:
-        priority.value.trim() === ""
-          ? 0
-          : Number(priority.value),
-
-      active:
-        active.checked
-    };
-
 
     if (
-      !Number.isFinite(
-        data.priority
-      ) ||
-      data.priority < 0
+      !selectedFile &&
+      !bannerUrl.value.trim() &&
+      !editingBannerData?.imageUrl
     ) {
 
-      showFormError(
-        "Priority must be a valid number."
+      showMessage(
+        "Please upload a banner image or enter a banner URL.",
+        "error"
       );
 
       return;
@@ -806,39 +766,41 @@ bannerForm.addEventListener(
 
     try {
 
-      showLoading();
-
       saveButton.disabled = true;
 
       saveButton.textContent =
-        currentEditId
-          ? "Updating..."
-          : "Saving...";
+        "Saving...";
 
 
       let imageUrl =
-        existingImageUrl;
+        editingBannerData?.imageUrl || "";
 
       let storagePath =
-        existingStoragePath;
+        editingBannerData?.storagePath || "";
+
+      let source =
+        editingBannerData?.source || "URL";
 
 
-      /*
-       * Upload a new image only when
-       * Admin selected one.
-       */
-      if (selectedImageFile) {
+      /* -----------------------------------------------
+         UPLOAD IMAGE
+      ------------------------------------------------ */
+
+      if (
+        selectedSource === "upload" &&
+        selectedFile
+      ) {
 
         const extension =
-          getFileExtension(
-            selectedImageFile.name
+          getExtension(
+            selectedFile.name
           );
 
         const uniqueName =
-          `${Date.now()}_${crypto.randomUUID()}${extension}`;
+          `${Date.now()}_${crypto.randomUUID()}.${extension}`;
 
         storagePath =
-          `${STORAGE_FOLDER}/${uniqueName}`;
+          `${BANNER_STORAGE_PATH}/${uniqueName}`;
 
         const storageRef =
           ref(
@@ -848,13 +810,10 @@ bannerForm.addEventListener(
 
         await uploadBytes(
           storageRef,
-          selectedImageFile,
+          selectedFile,
           {
             contentType:
-              selectedImageFile.type,
-
-            cacheControl:
-              "public,max-age=31536000"
+              selectedFile.type
           }
         );
 
@@ -863,51 +822,95 @@ bannerForm.addEventListener(
             storageRef
           );
 
+        source = "UPLOAD";
+      }
+
+
+      /* -----------------------------------------------
+         URL
+      ------------------------------------------------ */
+
+      if (
+        selectedSource === "url" &&
+        bannerUrl.value.trim()
+      ) {
+
+        imageUrl =
+          bannerUrl.value.trim();
+
+        source = "URL";
 
         /*
-         * If editing and the old image has
-         * a known Storage path, remove it.
+         * If changing from an uploaded image
+         * to URL, remove the old storage reference.
          */
         if (
-          currentEditId &&
-          existingStoragePath &&
-          existingStoragePath !== storagePath
+          editingBannerData?.storagePath
         ) {
 
           await safelyDeleteStorageFile(
-            existingStoragePath
+            editingBannerData.storagePath
           );
+
+          storagePath = "";
         }
       }
 
 
-      if (currentEditId) {
+      /* -----------------------------------------------
+         DATA
+      ------------------------------------------------ */
 
-        const bannerRef =
+      const bannerData = {
+
+        imageUrl,
+
+        source,
+
+        storagePath,
+
+        title,
+
+        description,
+
+        buttonText: text,
+
+        buttonLink: link,
+
+        priority: priorityValue,
+
+        active: isActive,
+
+        updatedAt:
+          serverTimestamp(),
+
+        updatedBy:
+          currentUser?.uid || null
+      };
+
+
+      /* -----------------------------------------------
+         UPDATE
+      ------------------------------------------------ */
+
+      if (editingBannerId) {
+
+        await updateDoc(
           doc(
             db,
             BANNERS_COLLECTION,
-            currentEditId
-          );
-
-        await updateDoc(
-          bannerRef,
-          {
-            ...data,
-
-            imageUrl,
-
-            storagePath,
-
-            updatedAt:
-              serverTimestamp(),
-
-            updatedBy:
-              user.uid
-          }
+            editingBannerId
+          ),
+          bannerData
         );
 
-      } else {
+      }
+
+      /* -----------------------------------------------
+         CREATE
+      ------------------------------------------------ */
+
+      else {
 
         await addDoc(
           collection(
@@ -915,39 +918,30 @@ bannerForm.addEventListener(
             BANNERS_COLLECTION
           ),
           {
-            ...data,
-
-            imageUrl,
-
-            storagePath,
+            ...bannerData,
 
             createdAt:
               serverTimestamp(),
 
             createdBy:
-              user.uid,
-
-            updatedAt:
-              serverTimestamp(),
-
-            updatedBy:
-              user.uid
+              currentUser?.uid || null
           }
         );
       }
 
 
-      closeBannerModal();
+      closeForm();
 
     } catch (error) {
 
       console.error(
-        "Saving banner failed:",
+        "Save banner error:",
         error
       );
 
-      showFormError(
-        getReadableFirebaseError(error)
+      showMessage(
+        getFirebaseErrorMessage(error),
+        "error"
       );
 
     } finally {
@@ -955,431 +949,72 @@ bannerForm.addEventListener(
       saveButton.disabled = false;
 
       saveButton.textContent =
-        currentEditId
-          ? "Update Banner"
+        editingBannerId
+          ? "Save Changes"
           : "Save Banner";
-
-      hideLoading();
     }
   }
 );
-
-
-/* =====================================================
-   TOGGLE ACTIVE
-===================================================== */
-
-async function toggleBanner(id) {
-
-  const banner =
-    banners.find(
-      (item) => item.id === id
-    );
-
-  if (!banner) return;
-
-
-  const user =
-    getCurrentAdmin() ||
-    auth.currentUser;
-
-
-  if (!user) {
-
-    alert(
-      "Please authenticate as an Admin."
-    );
-
-    return;
-  }
-
-
-  try {
-
-    showLoading();
-
-    await updateDoc(
-      doc(
-        db,
-        BANNERS_COLLECTION,
-        id
-      ),
-      {
-        active:
-          banner.active === false,
-
-        updatedAt:
-          serverTimestamp(),
-
-        updatedBy:
-          user.uid
-      }
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Banner status update failed:",
-      error
-    );
-
-    alert(
-      getReadableFirebaseError(error)
-    );
-
-  } finally {
-
-    hideLoading();
-  }
-}
 
 
 /* =====================================================
    DELETE
 ===================================================== */
 
-function openDeleteModal(id) {
-
-  currentDeleteId = id;
-
-  deleteModal.classList.remove(
-    "hidden"
-  );
-}
-
-
-async function deleteBanner() {
-
-  if (!currentDeleteId) return;
-
+async function deleteBanner(id) {
 
   const banner =
     banners.find(
-      (item) =>
-        item.id === currentDeleteId
+      item => item.id === id
     );
+
+  if (!banner) return;
+
+
+  const confirmed =
+    window.confirm(
+      "Delete this banner? This action cannot be undone."
+    );
+
+  if (!confirmed) return;
 
 
   try {
 
     showLoading();
 
+
     await deleteDoc(
       doc(
         db,
         BANNERS_COLLECTION,
-        currentDeleteId
+        id
       )
     );
 
 
-    if (
-      banner?.storagePath
-    ) {
+    if (banner.storagePath) {
 
       await safelyDeleteStorageFile(
         banner.storagePath
       );
     }
 
-
-    closeDeleteModal();
-
   } catch (error) {
 
     console.error(
-      "Banner deletion failed:",
+      "Delete banner error:",
       error
     );
 
     alert(
-      getReadableFirebaseError(error)
+      getFirebaseErrorMessage(error)
     );
 
   } finally {
 
     hideLoading();
   }
-}
-
-
-/* =====================================================
-   EVENT DELEGATION
-===================================================== */
-
-bannerList.addEventListener(
-  "click",
-  (event) => {
-
-    const button =
-      event.target.closest(
-        "[data-action]"
-      );
-
-    if (!button) return;
-
-    const action =
-      button.dataset.action;
-
-    const id =
-      button.dataset.id;
-
-
-    if (action === "edit") {
-
-      openEditModal(id);
-
-    } else if (action === "delete") {
-
-      openDeleteModal(id);
-
-    } else if (action === "toggle") {
-
-      toggleBanner(id);
-    }
-  }
-);
-
-
-/* =====================================================
-   MODAL EVENTS
-===================================================== */
-
-document
-  .getElementById("addBannerButton")
-  .addEventListener(
-    "click",
-    openAddModal
-  );
-
-
-document
-  .getElementById("closeModalButton")
-  .addEventListener(
-    "click",
-    closeBannerModal
-  );
-
-
-document
-  .getElementById("cancelButton")
-  .addEventListener(
-    "click",
-    closeBannerModal
-  );
-
-
-document
-  .getElementById("cancelDeleteButton")
-  .addEventListener(
-    "click",
-    closeDeleteModal
-  );
-
-
-document
-  .getElementById("confirmDeleteButton")
-  .addEventListener(
-    "click",
-    deleteBanner
-  );
-
-
-document
-  .getElementById("backButton")
-  .addEventListener(
-    "click",
-    () => {
-
-      window.location.href =
-        "../";
-    }
-  );
-
-
-/* =====================================================
-   CLOSE MODALS ON OVERLAY CLICK
-===================================================== */
-
-bannerModal.addEventListener(
-  "click",
-  (event) => {
-
-    if (
-      event.target === bannerModal
-    ) {
-
-      closeBannerModal();
-    }
-  }
-);
-
-
-deleteModal.addEventListener(
-  "click",
-  (event) => {
-
-    if (
-      event.target === deleteModal
-    ) {
-
-      closeDeleteModal();
-    }
-  }
-);
-
-
-/* =====================================================
-   ESC KEY
-===================================================== */
-
-document.addEventListener(
-  "keydown",
-  (event) => {
-
-    if (event.key !== "Escape") {
-      return;
-    }
-
-    closeBannerModal();
-
-    closeDeleteModal();
-  }
-);
-
-
-/* =====================================================
-   MODAL HELPERS
-===================================================== */
-
-function closeBannerModal() {
-
-  bannerModal.classList.add(
-    "hidden"
-  );
-
-  currentEditId = null;
-
-  selectedImageFile = null;
-
-  existingImageUrl = "";
-
-  existingStoragePath = "";
-
-  bannerForm.reset();
-
-  resetImagePreview();
-
-  clearFormError();
-}
-
-
-function closeDeleteModal() {
-
-  deleteModal.classList.add(
-    "hidden"
-  );
-
-  currentDeleteId = null;
-}
-
-
-function resetImagePreview() {
-
-  imagePreview.removeAttribute(
-    "src"
-  );
-
-  imagePreviewWrapper.classList.add(
-    "hidden"
-  );
-
-  uploadPlaceholder.classList.remove(
-    "hidden"
-  );
-
-  imageInfo.textContent = "";
-
-  bannerImage.value = "";
-}
-
-
-/* =====================================================
-   IMAGE UTILITIES
-===================================================== */
-
-function getImageDimensions(file) {
-
-  return new Promise(
-    (resolve, reject) => {
-
-      const image =
-        new Image();
-
-      const url =
-        URL.createObjectURL(file);
-
-      image.onload = () => {
-
-        URL.revokeObjectURL(url);
-
-        resolve({
-          width: image.naturalWidth,
-          height: image.naturalHeight
-        });
-      };
-
-      image.onerror = () => {
-
-        URL.revokeObjectURL(url);
-
-        reject(
-          new Error(
-            "Invalid image."
-          )
-        );
-      };
-
-      image.src = url;
-    }
-  );
-}
-
-
-function getFileExtension(filename) {
-
-  const index =
-    filename.lastIndexOf(".");
-
-  if (index === -1) {
-    return "";
-  }
-
-  return filename
-    .slice(index)
-    .toLowerCase();
-}
-
-
-function formatBytes(bytes) {
-
-  if (!bytes) {
-    return "0 KB";
-  }
-
-  const units =
-    ["Bytes", "KB", "MB"];
-
-  const index =
-    Math.floor(
-      Math.log(bytes) /
-      Math.log(1024)
-    );
-
-  return `${(
-    bytes /
-    Math.pow(1024, index)
-  ).toFixed(1)} ${units[index]}`;
 }
 
 
@@ -1391,9 +1026,7 @@ async function safelyDeleteStorageFile(
   storagePath
 ) {
 
-  if (!storagePath) {
-    return;
-  }
+  if (!storagePath) return;
 
   try {
 
@@ -1410,11 +1043,12 @@ async function safelyDeleteStorageFile(
   } catch (error) {
 
     /*
-     * If the file has already been deleted,
-     * Firestore deletion should still succeed.
+     * If the Storage file is already gone,
+     * don't block deleting/updating Firestore.
      */
+
     console.warn(
-      "Unable to delete Storage file:",
+      "Storage file could not be deleted:",
       error
     );
   }
@@ -1422,150 +1056,224 @@ async function safelyDeleteStorageFile(
 
 
 /* =====================================================
-   ERROR UI
+   EVENTS
 ===================================================== */
 
-function showFormError(message) {
+document
+  .getElementById("addBannerButton")
+  .addEventListener(
+    "click",
+    () => openForm()
+  );
 
-  formError.textContent =
-    message;
 
-  formError.classList.remove(
-    "hidden"
+document
+  .getElementById("emptyAddButton")
+  .addEventListener(
+    "click",
+    () => openForm()
+  );
+
+
+document
+  .getElementById("closeFormButton")
+  .addEventListener(
+    "click",
+    closeForm
+  );
+
+
+document
+  .getElementById("cancelButton")
+  .addEventListener(
+    "click",
+    closeForm
+  );
+
+
+document
+  .getElementById("backButton")
+  .addEventListener(
+    "click",
+    () => {
+
+      if (!bannerFormSection.hidden) {
+
+        closeForm();
+
+      } else {
+
+        window.location.href =
+          "../";
+      }
+    }
+  );
+
+
+uploadTab.addEventListener(
+  "click",
+  () => setSource("upload")
+);
+
+
+urlTab.addEventListener(
+  "click",
+  () => setSource("url")
+);
+
+
+bannerList.addEventListener(
+  "click",
+  event => {
+
+    const button =
+      event.target.closest(
+        "[data-action]"
+      );
+
+    if (!button) return;
+
+
+    const action =
+      button.dataset.action;
+
+    const id =
+      button.dataset.id;
+
+
+    const banner =
+      banners.find(
+        item => item.id === id
+      );
+
+
+    if (action === "edit" && banner) {
+
+      openForm(banner);
+    }
+
+
+    if (action === "delete") {
+
+      deleteBanner(id);
+    }
+  }
+);
+
+
+/* =====================================================
+   HELPERS
+===================================================== */
+
+function getExtension(filename) {
+
+  const parts =
+    filename.split(".");
+
+  return (
+    parts.length > 1
+      ? parts.pop().toLowerCase()
+      : "jpg"
   );
 }
 
 
-function clearFormError() {
+function showMessage(
+  text,
+  type = "error"
+) {
 
-  formError.textContent = "";
+  formMessage.textContent = text;
 
-  formError.classList.add(
-    "hidden"
-  );
+  formMessage.className =
+    `form-message ${type}`;
+
+  formMessage.hidden = false;
 }
 
 
-function showErrorState(message) {
+function clearMessage() {
 
-  bannerLoading.classList.add(
-    "hidden"
-  );
+  formMessage.textContent = "";
 
-  bannerEmpty.classList.remove(
-    "hidden"
-  );
+  formMessage.className =
+    "form-message";
 
-  bannerEmpty.innerHTML = `
-    <div class="empty-title">
-      ${escapeHtml(message)}
+  formMessage.hidden = true;
+}
+
+
+function showEmptyError() {
+
+  bannerList.innerHTML = `
+    <div class="empty-state">
+
+      <div class="empty-icon">
+        !
+      </div>
+
+      <h2>
+        Unable to load banners
+      </h2>
+
+      <p>
+        Please check your Firebase connection
+        and try again.
+      </p>
+
     </div>
   `;
+
+  emptyState.hidden = true;
 }
 
-
-/* =====================================================
-   FIREBASE ERROR
-===================================================== */
-
-function getReadableFirebaseError(
-  error
-) {
-
-  if (!error) {
-    return "Something went wrong.";
-  }
-
-  switch (error.code) {
-
-    case "storage/unauthorized":
-      return "You do not have permission to upload this image.";
-
-    case "storage/canceled":
-      return "Image upload was cancelled.";
-
-    case "storage/unknown":
-      return "An unexpected Storage error occurred.";
-
-    case "permission-denied":
-      return "You do not have permission to modify banners.";
-
-    default:
-      return error.message ||
-        "Something went wrong. Please try again.";
-  }
-}
-
-
-/* =====================================================
-   TIMESTAMP
-===================================================== */
-
-function getTimestampValue(
-  timestamp
-) {
-
-  if (!timestamp) {
-    return 0;
-  }
-
-  if (
-    typeof timestamp.toMillis ===
-    "function"
-  ) {
-
-    return timestamp.toMillis();
-  }
-
-  if (
-    timestamp instanceof Date
-  ) {
-
-    return timestamp.getTime();
-  }
-
-  if (
-    typeof timestamp === "number"
-  ) {
-
-    return timestamp;
-  }
-
-  return 0;
-}
-
-
-/* =====================================================
-   HTML SAFETY
-===================================================== */
 
 function escapeHtml(value) {
 
   return String(value)
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 
 function escapeAttribute(value) {
 
   return escapeHtml(value);
+}
+
+
+function getFirebaseErrorMessage(error) {
+
+  if (!error) {
+    return "Something went wrong.";
+  }
+
+  if (
+    error.code ===
+    "storage/unauthorized"
+  ) {
+    return "Firebase Storage permission denied.";
+  }
+
+  if (
+    error.code ===
+    "storage/cors-unsupported"
+  ) {
+    return "Firebase Storage CORS configuration is blocking this upload.";
+  }
+
+  if (
+    error.code ===
+    "permission-denied"
+  ) {
+    return "Firebase permission denied.";
+  }
+
+  return (
+    error.message ||
+    "Unable to save the banner."
+  );
 }
