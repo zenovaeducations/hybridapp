@@ -17,7 +17,9 @@
 
 <body>
 
-  <div id="app">
+  <div id="loadingScreen"></div>
+
+  <div class="app">
 
     <!-- HEADER -->
     <header class="topbar">
@@ -26,8 +28,8 @@
 
         <button
           type="button"
+          class="back-button"
           id="backButton"
-          class="icon-button"
           aria-label="Go back"
         >
           ←
@@ -36,7 +38,7 @@
         <div>
           <div class="page-title">Banners</div>
           <div class="page-subtitle">
-            Manage student Home banners
+            Manage Student Home banners
           </div>
         </div>
 
@@ -44,8 +46,8 @@
 
       <button
         type="button"
+        class="add-button"
         id="addBannerButton"
-        class="primary-button"
       >
         + Add Banner
       </button>
@@ -53,379 +55,391 @@
     </header>
 
 
-    <!-- MAIN -->
-    <main class="main-content">
+    <!-- CONTENT -->
+    <main class="content">
 
-      <!-- EMPTY / LOADING -->
-      <div
-        id="bannerLoading"
-        class="state-message"
-      >
-        Loading banners...
-      </div>
+      <!-- EMPTY / LIST -->
+      <section id="bannerListSection">
 
+        <div
+          id="bannerList"
+          class="banner-list"
+        ></div>
 
-      <div
-        id="bannerEmpty"
-        class="state-message hidden"
-      >
-        <div class="empty-title">
-          No banners yet
-        </div>
+        <div
+          id="emptyState"
+          class="empty-state"
+          hidden
+        >
+          <div class="empty-icon">＋</div>
 
-        <div class="empty-text">
-          Add your first Home banner.
-        </div>
-      </div>
-
-
-      <!-- BANNER LIST -->
-      <section
-        id="bannerList"
-        class="banner-list hidden"
-      ></section>
-
-    </main>
-
-  </div>
-
-
-  <!-- ADD / EDIT MODAL -->
-  <div
-    id="bannerModal"
-    class="modal-overlay hidden"
-  >
-
-    <div class="modal">
-
-      <div class="modal-header">
-
-        <div>
-          <h2 id="modalTitle">
-            Add Banner
-          </h2>
+          <h2>No banners yet</h2>
 
           <p>
-            Only the banner image is required.
+            Add a banner to display it on the Student Home screen.
           </p>
+
+          <button
+            type="button"
+            class="primary-button"
+            id="emptyAddButton"
+          >
+            Add Banner
+          </button>
         </div>
 
-        <button
-          type="button"
-          id="closeModalButton"
-          class="modal-close"
-        >
-          ×
-        </button>
-
-      </div>
+      </section>
 
 
-      <form id="bannerForm">
+      <!-- FORM -->
+      <section
+        id="bannerFormSection"
+        class="form-section"
+        hidden
+      >
 
-        <!-- IMAGE -->
-        <div class="form-section">
+        <div class="form-header">
 
-          <label class="form-label">
-            Banner Image <span class="required">*</span>
-          </label>
+          <div>
+            <h1 id="formTitle">Add Banner</h1>
 
-          <div
-            id="uploadArea"
-            class="upload-area"
+            <p>
+              Only a banner image or banner URL is required.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="close-button"
+            id="closeFormButton"
+            aria-label="Close"
           >
+            ×
+          </button>
 
-            <input
-              type="file"
-              id="bannerImage"
-              accept="image/*"
-              hidden
-            >
+        </div>
 
-            <div
-              id="uploadPlaceholder"
-              class="upload-placeholder"
-            >
 
-              <div class="upload-icon">
-                ↑
-              </div>
+        <form id="bannerForm">
 
-              <div class="upload-title">
-                Upload banner image
-              </div>
+          <!-- BANNER SOURCE -->
+          <div class="form-card">
 
-              <div class="upload-description">
-                Recommended size: 1920 × 720 px
-              </div>
+            <div class="section-heading">
+              Banner Image
+            </div>
 
-              <div class="upload-description">
-                JPG, JPEG, PNG or WebP
-              </div>
-
+            <div class="section-description">
+              Upload an image or use an image URL.
+              You only need one.
             </div>
 
 
-            <div
-              id="imagePreviewWrapper"
-              class="image-preview-wrapper hidden"
-            >
-
-              <img
-                id="imagePreview"
-                class="image-preview"
-                alt="Banner preview"
-              >
+            <!-- SOURCE TABS -->
+            <div class="source-tabs">
 
               <button
                 type="button"
-                id="changeImageButton"
-                class="change-image-button"
+                class="source-tab active"
+                data-source="upload"
+                id="uploadTab"
               >
-                Change Image
+                Upload Image
+              </button>
+
+              <button
+                type="button"
+                class="source-tab"
+                data-source="url"
+                id="urlTab"
+              >
+                Banner URL
               </button>
 
             </div>
 
-          </div>
 
-          <div
-            id="imageInfo"
-            class="image-info"
-          ></div>
-
-        </div>
-
-
-        <!-- TITLE -->
-        <div class="form-section">
-
-          <label
-            for="bannerTitle"
-            class="form-label"
-          >
-            Title
-            <span class="optional">
-              Optional
-            </span>
-          </label>
-
-          <input
-            id="bannerTitle"
-            class="form-input"
-            type="text"
-            maxlength="150"
-            placeholder="Enter banner title"
-          >
-
-        </div>
-
-
-        <!-- DESCRIPTION -->
-        <div class="form-section">
-
-          <label
-            for="bannerDescription"
-            class="form-label"
-          >
-            Description
-            <span class="optional">
-              Optional
-            </span>
-          </label>
-
-          <textarea
-            id="bannerDescription"
-            class="form-textarea"
-            rows="3"
-            maxlength="300"
-            placeholder="Enter banner description"
-          ></textarea>
-
-        </div>
-
-
-        <!-- BUTTON TEXT -->
-        <div class="form-section">
-
-          <label
-            for="buttonText"
-            class="form-label"
-          >
-            Button Text
-            <span class="optional">
-              Optional
-            </span>
-          </label>
-
-          <input
-            id="buttonText"
-            class="form-input"
-            type="text"
-            maxlength="50"
-            placeholder="Example: Explore Now"
-          >
-
-        </div>
-
-
-        <!-- BUTTON LINK -->
-        <div class="form-section">
-
-          <label
-            for="buttonLink"
-            class="form-label"
-          >
-            Button Link
-            <span class="optional">
-              Optional
-            </span>
-          </label>
-
-          <input
-            id="buttonLink"
-            class="form-input"
-            type="text"
-            maxlength="500"
-            placeholder="Example: ../batches/"
-          >
-
-        </div>
-
-
-        <!-- PRIORITY -->
-        <div class="form-section">
-
-          <label
-            for="priority"
-            class="form-label"
-          >
-            Priority
-            <span class="optional">
-              Optional
-            </span>
-          </label>
-
-          <input
-            id="priority"
-            class="form-input"
-            type="number"
-            min="0"
-            step="1"
-            placeholder="1"
-          >
-
-          <div class="field-help">
-            Lower number appears first.
-          </div>
-
-        </div>
-
-
-        <!-- ACTIVE -->
-        <div class="active-row">
-
-          <div>
-            <div class="active-title">
-              Active
-            </div>
-
-            <div class="active-description">
-              Show this banner on the student Home.
-            </div>
-          </div>
-
-          <label class="switch">
-
-            <input
-              type="checkbox"
-              id="active"
-              checked
+            <!-- UPLOAD -->
+            <div
+              id="uploadSource"
+              class="source-panel"
             >
 
-            <span class="slider"></span>
+              <label
+                for="bannerFile"
+                class="upload-box"
+                id="uploadBox"
+              >
 
-          </label>
+                <div class="upload-icon">
+                  ↑
+                </div>
 
-        </div>
+                <div class="upload-title">
+                  Choose banner image
+                </div>
 
+                <div class="upload-text">
+                  PNG, JPG or WEBP
+                </div>
 
-        <!-- ERROR -->
-        <div
-          id="formError"
-          class="form-error hidden"
-        ></div>
+                <div class="upload-recommended">
+                  Recommended: 1920 × 720 px
+                </div>
 
+                <input
+                  type="file"
+                  id="bannerFile"
+                  accept="image/png,image/jpeg,image/webp"
+                  hidden
+                >
 
-        <!-- ACTIONS -->
-        <div class="modal-actions">
+              </label>
 
-          <button
-            type="button"
-            id="cancelButton"
-            class="secondary-button"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="submit"
-            id="saveButton"
-            class="primary-button"
-          >
-            Save Banner
-          </button>
-
-        </div>
-
-      </form>
-
-    </div>
-
-  </div>
+            </div>
 
 
-  <!-- CONFIRM DELETE -->
-  <div
-    id="deleteModal"
-    class="modal-overlay hidden"
-  >
+            <!-- URL -->
+            <div
+              id="urlSource"
+              class="source-panel"
+              hidden
+            >
 
-    <div class="confirm-modal">
+              <label
+                for="bannerUrl"
+                class="field-label"
+              >
+                Image URL
+              </label>
 
-      <div class="confirm-icon">
-        !
-      </div>
+              <input
+                type="url"
+                id="bannerUrl"
+                class="field-input"
+                placeholder="https://example.com/banner.jpg"
+              >
 
-      <h2>
-        Delete banner?
-      </h2>
+              <p class="field-help">
+                Paste a direct URL to the banner image.
+              </p>
 
-      <p>
-        This banner will be permanently removed.
-      </p>
+            </div>
 
-      <div class="confirm-actions">
 
-        <button
-          type="button"
-          id="cancelDeleteButton"
-          class="secondary-button"
-        >
-          Cancel
-        </button>
+            <!-- PREVIEW -->
+            <div
+              id="previewContainer"
+              class="preview-container"
+              hidden
+            >
 
-        <button
-          type="button"
-          id="confirmDeleteButton"
-          class="danger-button"
-        >
-          Delete
-        </button>
+              <div class="preview-label">
+                Preview
+              </div>
 
-      </div>
+              <div class="banner-preview">
 
-    </div>
+                <img
+                  id="bannerPreview"
+                  src=""
+                  alt="Banner preview"
+                >
+
+              </div>
+
+              <div
+                id="imageDimensions"
+                class="image-dimensions"
+              ></div>
+
+            </div>
+
+          </div>
+
+
+          <!-- OPTIONAL DETAILS -->
+          <div class="form-card">
+
+            <div class="section-heading">
+              Banner Details
+            </div>
+
+            <div class="section-description">
+              All fields below are optional.
+            </div>
+
+
+            <div class="field-group">
+
+              <label
+                for="bannerTitle"
+                class="field-label"
+              >
+                Title
+              </label>
+
+              <input
+                type="text"
+                id="bannerTitle"
+                class="field-input"
+                placeholder="Optional banner title"
+              >
+
+            </div>
+
+
+            <div class="field-group">
+
+              <label
+                for="bannerDescription"
+                class="field-label"
+              >
+                Description
+              </label>
+
+              <textarea
+                id="bannerDescription"
+                class="field-textarea"
+                rows="3"
+                placeholder="Optional description"
+              ></textarea>
+
+            </div>
+
+
+            <div class="two-columns">
+
+              <div class="field-group">
+
+                <label
+                  for="buttonText"
+                  class="field-label"
+                >
+                  Button Text
+                </label>
+
+                <input
+                  type="text"
+                  id="buttonText"
+                  class="field-input"
+                  placeholder="Optional"
+                >
+
+              </div>
+
+
+              <div class="field-group">
+
+                <label
+                  for="buttonLink"
+                  class="field-label"
+                >
+                  Button Link
+                </label>
+
+                <input
+                  type="text"
+                  id="buttonLink"
+                  class="field-input"
+                  placeholder="/home/batches/"
+                >
+
+              </div>
+
+            </div>
+
+
+            <div class="two-columns">
+
+              <div class="field-group">
+
+                <label
+                  for="priority"
+                  class="field-label"
+                >
+                  Priority
+                </label>
+
+                <input
+                  type="number"
+                  id="priority"
+                  class="field-input"
+                  min="0"
+                  step="1"
+                  value="0"
+                >
+
+                <p class="field-help">
+                  Lower number appears first.
+                </p>
+
+              </div>
+
+
+              <div class="field-group">
+
+                <label class="field-label">
+                  Status
+                </label>
+
+                <label class="switch-row">
+
+                  <input
+                    type="checkbox"
+                    id="active"
+                    checked
+                  >
+
+                  <span class="switch"></span>
+
+                  <span>
+                    Active
+                  </span>
+
+                </label>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- MESSAGE -->
+          <div
+            id="formMessage"
+            class="form-message"
+            hidden
+          ></div>
+
+
+          <!-- ACTIONS -->
+          <div class="form-actions">
+
+            <button
+              type="button"
+              class="secondary-button"
+              id="cancelButton"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              class="primary-button"
+              id="saveButton"
+            >
+              Save Banner
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+    </main>
 
   </div>
 
