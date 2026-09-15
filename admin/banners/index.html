@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta name="theme-color" content="#ffffff">
+
+  <title>Zenova Admin — Banners</title>
+
+  <link rel="stylesheet" href="./banners.css">
+</head>
+
+<body>
+
+  <div id="app">
+
+    <!-- HEADER -->
+    <header class="topbar">
+
+      <div class="topbar-left">
+
+        <button
+          type="button"
+          id="backButton"
+          class="icon-button"
+          aria-label="Go back"
+        >
+          ←
+        </button>
+
+        <div>
+          <div class="page-title">Banners</div>
+          <div class="page-subtitle">
+            Manage student Home banners
+          </div>
+        </div>
+
+      </div>
+
+      <button
+        type="button"
+        id="addBannerButton"
+        class="primary-button"
+      >
+        + Add Banner
+      </button>
+
+    </header>
+
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+      <!-- EMPTY / LOADING -->
+      <div
+        id="bannerLoading"
+        class="state-message"
+      >
+        Loading banners...
+      </div>
+
+
+      <div
+        id="bannerEmpty"
+        class="state-message hidden"
+      >
+        <div class="empty-title">
+          No banners yet
+        </div>
+
+        <div class="empty-text">
+          Add your first Home banner.
+        </div>
+      </div>
+
+
+      <!-- BANNER LIST -->
+      <section
+        id="bannerList"
+        class="banner-list hidden"
+      ></section>
+
+    </main>
+
+  </div>
+
+
+  <!-- ADD / EDIT MODAL -->
+  <div
+    id="bannerModal"
+    class="modal-overlay hidden"
+  >
+
+    <div class="modal">
+
+      <div class="modal-header">
+
+        <div>
+          <h2 id="modalTitle">
+            Add Banner
+          </h2>
+
+          <p>
+            Only the banner image is required.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          id="closeModalButton"
+          class="modal-close"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <form id="bannerForm">
+
+        <!-- IMAGE -->
+        <div class="form-section">
+
+          <label class="form-label">
+            Banner Image <span class="required">*</span>
+          </label>
+
+          <div
+            id="uploadArea"
+            class="upload-area"
+          >
+
+            <input
+              type="file"
+              id="bannerImage"
+              accept="image/*"
+              hidden
+            >
+
+            <div
+              id="uploadPlaceholder"
+              class="upload-placeholder"
+            >
+
+              <div class="upload-icon">
+                ↑
+              </div>
+
+              <div class="upload-title">
+                Upload banner image
+              </div>
+
+              <div class="upload-description">
+                Recommended size: 1920 × 720 px
+              </div>
+
+              <div class="upload-description">
+                JPG, JPEG, PNG or WebP
+              </div>
+
+            </div>
+
+
+            <div
+              id="imagePreviewWrapper"
+              class="image-preview-wrapper hidden"
+            >
+
+              <img
+                id="imagePreview"
+                class="image-preview"
+                alt="Banner preview"
+              >
+
+              <button
+                type="button"
+                id="changeImageButton"
+                class="change-image-button"
+              >
+                Change Image
+              </button>
+
+            </div>
+
+          </div>
+
+          <div
+            id="imageInfo"
+            class="image-info"
+          ></div>
+
+        </div>
+
+
+        <!-- TITLE -->
+        <div class="form-section">
+
+          <label
+            for="bannerTitle"
+            class="form-label"
+          >
+            Title
+            <span class="optional">
+              Optional
+            </span>
+          </label>
+
+          <input
+            id="bannerTitle"
+            class="form-input"
+            type="text"
+            maxlength="150"
+            placeholder="Enter banner title"
+          >
+
+        </div>
+
+
+        <!-- DESCRIPTION -->
+        <div class="form-section">
+
+          <label
+            for="bannerDescription"
+            class="form-label"
+          >
+            Description
+            <span class="optional">
+              Optional
+            </span>
+          </label>
+
+          <textarea
+            id="bannerDescription"
+            class="form-textarea"
+            rows="3"
+            maxlength="300"
+            placeholder="Enter banner description"
+          ></textarea>
+
+        </div>
+
+
+        <!-- BUTTON TEXT -->
+        <div class="form-section">
+
+          <label
+            for="buttonText"
+            class="form-label"
+          >
+            Button Text
+            <span class="optional">
+              Optional
+            </span>
+          </label>
+
+          <input
+            id="buttonText"
+            class="form-input"
+            type="text"
+            maxlength="50"
+            placeholder="Example: Explore Now"
+          >
+
+        </div>
+
+
+        <!-- BUTTON LINK -->
+        <div class="form-section">
+
+          <label
+            for="buttonLink"
+            class="form-label"
+          >
+            Button Link
+            <span class="optional">
+              Optional
+            </span>
+          </label>
+
+          <input
+            id="buttonLink"
+            class="form-input"
+            type="text"
+            maxlength="500"
+            placeholder="Example: ../batches/"
+          >
+
+        </div>
+
+
+        <!-- PRIORITY -->
+        <div class="form-section">
+
+          <label
+            for="priority"
+            class="form-label"
+          >
+            Priority
+            <span class="optional">
+              Optional
+            </span>
+          </label>
+
+          <input
+            id="priority"
+            class="form-input"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="1"
+          >
+
+          <div class="field-help">
+            Lower number appears first.
+          </div>
+
+        </div>
+
+
+        <!-- ACTIVE -->
+        <div class="active-row">
+
+          <div>
+            <div class="active-title">
+              Active
+            </div>
+
+            <div class="active-description">
+              Show this banner on the student Home.
+            </div>
+          </div>
+
+          <label class="switch">
+
+            <input
+              type="checkbox"
+              id="active"
+              checked
+            >
+
+            <span class="slider"></span>
+
+          </label>
+
+        </div>
+
+
+        <!-- ERROR -->
+        <div
+          id="formError"
+          class="form-error hidden"
+        ></div>
+
+
+        <!-- ACTIONS -->
+        <div class="modal-actions">
+
+          <button
+            type="button"
+            id="cancelButton"
+            class="secondary-button"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            id="saveButton"
+            class="primary-button"
+          >
+            Save Banner
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+  <!-- CONFIRM DELETE -->
+  <div
+    id="deleteModal"
+    class="modal-overlay hidden"
+  >
+
+    <div class="confirm-modal">
+
+      <div class="confirm-icon">
+        !
+      </div>
+
+      <h2>
+        Delete banner?
+      </h2>
+
+      <p>
+        This banner will be permanently removed.
+      </p>
+
+      <div class="confirm-actions">
+
+        <button
+          type="button"
+          id="cancelDeleteButton"
+          class="secondary-button"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          id="confirmDeleteButton"
+          class="danger-button"
+        >
+          Delete
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <script type="module" src="./banners.js"></script>
+
+</body>
+</html>
